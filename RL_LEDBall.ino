@@ -7,7 +7,7 @@ const char delim = ';';
 
 enum State_enum { PULSE, TEAM, GOAL };
 
-uint8_t state = PULSE;
+uint8_t state = GOAL;
 uint8_t oldState;
 
 int red   = 128;
@@ -29,8 +29,8 @@ void setup() {
 }
 
 void loop() {
-  // If we're in an uninterruptable state don't bother reading input
-  //readSerial();
+  if (stateLocked) return;
+  
   switch (state) {
     case PULSE:
       pulse();
@@ -49,6 +49,11 @@ void loop() {
 void serialEvent() {
   while (Serial.available()) {
     String command = Serial.readStringUntil(delim);
+
+    if (command == "CONNECT") {
+      Serial.write("RL_BALL_CONNECTED");
+      return;
+    }
 
     if (command == "PULSE") {
       changeState(PULSE);
@@ -76,43 +81,38 @@ void serialEvent() {
 
 bool changeState(uint8_t newState) {
   if (stateLocked) return false;
-  
-  if(newState != oldState) {
-    oldState = state;
-    state = newState;
-    return true;
-  }
 
-  return false;
+  oldState = state;
+  state = newState;
+  
+  return true;
 }
 
-// Events
+void setLEDs(int r, int g, int b) {
+  analogWrite(redLEDPin,   r);
+  analogWrite(greenLEDPin, g);
+  analogWrite(blueLEDPin,  b);
+}
+
 void showTeam() {
-  analogWrite(redLEDPin, red);
-  analogWrite(greenLEDPin, green);
-  analogWrite(blueLEDPin, blue);
+  setLEDs(red, green, blue);
 }
 
 void goalFlash() {
   stateLocked = true;
   for (int i = 0; i < 10; i++) {
-    analogWrite(redLEDPin, 0);
-    analogWrite(greenLEDPin, 0);
-    analogWrite(blueLEDPin, 0);
+    setLEDs(0, 0, 0);
     delay(100);
-    analogWrite(redLEDPin, red);
-    analogWrite(greenLEDPin, blue);
-    analogWrite(blueLEDPin, green);
+    setLEDs(red, green, blue);
     delay(100);
   }
   stateLocked = false;
-  changeState(TEAM);
+  
+  changeState(oldState);
 }
 
 void pulse() {
-  analogWrite(redLEDPin, brightness);
-  analogWrite(greenLEDPin, brightness);
-  analogWrite(blueLEDPin, brightness);
+  setLEDs(brightness, brightness, brightness);
 
   brightness = brightness + fadeAmount;
 
