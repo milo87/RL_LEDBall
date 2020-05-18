@@ -1,18 +1,19 @@
-const int redLEDPin  = 9;
-const int greenLEDPin = 10;
-const int blueLEDPin = 11;
-const int debugLEDPin = 12;
+#include <Adafruit_NeoPixel.h>
 
+const int dataPin = 3;
+const int ledCount = 5;
 const char delim = ';';
 
 enum State_enum { PULSE, TEAM, GOAL };
 
-uint8_t state = GOAL;
+uint8_t state = PULSE;
 uint8_t oldState;
 
 int red   = 128;
-int green = 128;
-int blue  = 128;
+int green = 0;
+int blue  = 0;
+
+Adafruit_NeoPixel strip(ledCount, dataPin, NEO_RGB + NEO_KHZ800);
 
 int brightness = 0;
 int fadeAmount = 5;
@@ -22,10 +23,9 @@ bool stateLocked = false;
 void setup() {
   Serial.begin(9600);
 
-  pinMode(redLEDPin,  OUTPUT);
-  pinMode(greenLEDPin, OUTPUT);
-  pinMode(blueLEDPin, OUTPUT);
-  pinMode(debugLEDPin, OUTPUT);
+  pinMode(dataPin,  OUTPUT);
+  strip.begin();
+  strip.show();
 }
 
 void loop() {
@@ -89,9 +89,9 @@ bool changeState(uint8_t newState) {
 }
 
 void setLEDs(int r, int g, int b) {
-  analogWrite(redLEDPin,   r);
-  analogWrite(greenLEDPin, g);
-  analogWrite(blueLEDPin,  b);
+  uint32_t colour = strip.Color(r, g, b);
+  strip.fill(colour, 0);
+  strip.show();
 }
 
 void showTeam() {
@@ -120,5 +120,5 @@ void pulse() {
     fadeAmount = -fadeAmount;
   }
 
-  delay(30);
+  delay(50);
 }
