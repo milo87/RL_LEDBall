@@ -4,6 +4,8 @@ const int dataPin = 3;
 const int ledCount = 5;
 const char delim = ';';
 
+const int debugPin = 13;
+
 enum State_enum { PULSE, TEAM, GOAL };
 
 uint8_t state = PULSE;
@@ -23,23 +25,22 @@ bool stateLocked = false;
 void setup() {
   Serial.begin(9600);
 
+  // Init Neopixels
   pinMode(dataPin,  OUTPUT);
   strip.begin();
   strip.show();
+
+  // Debug
+  pinMode(debugPin, OUTPUT);
 }
 
 void loop() {
-  if (stateLocked) return;
-  
   switch (state) {
     case PULSE:
       pulse();
       break;
     case TEAM:
       showTeam();
-      break;
-    case GOAL:
-      goalFlash();
       break;
     default:
       break;
@@ -54,12 +55,19 @@ void serialEvent() {
       Serial.write("RL_BALL_CONNECTED");
       return;
     }
-
-    if (command == "PULSE") {
+    else if (command == "PULSE") {
       changeState(PULSE);
     }
+    else if (command == "GOAL") {
+      int numCycles = Serial.parseInt();
+      int offTime = Serial.parseInt();
+      int onTime = Serial.parseInt();
 
-    if (command == "TEAM") {
+      if(Serial.read() == delim) {
+        goalFlash(numCycles, offTime, onTime);
+      }
+    }
+    else if (command == "TEAM") {
       red = Serial.parseInt();
       green = Serial.parseInt();
       blue = Serial.parseInt();
@@ -71,10 +79,6 @@ void serialEvent() {
       }
       
       changeState(TEAM);
-    }
-
-    if (command == "GOAL") {
-      changeState(GOAL);
     }
   }
 }
@@ -98,13 +102,13 @@ void showTeam() {
   setLEDs(red, green, blue);
 }
 
-void goalFlash() {
+void goalFlash(int numCycles, int onTime, int offTime) {
   stateLocked = true;
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < numCycles; i++) {
     setLEDs(0, 0, 0);
-    delay(100);
+    delay(offTime);
     setLEDs(red, green, blue);
-    delay(100);
+    delay(onTime);
   }
   stateLocked = false;
   
@@ -120,5 +124,5 @@ void pulse() {
     fadeAmount = -fadeAmount;
   }
 
-  delay(50);
+  delay(30);
 }
