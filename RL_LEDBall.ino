@@ -1,10 +1,10 @@
 #include <Adafruit_NeoPixel.h>
 
 const int dataPin = 3;
+const int debugPin = 13;
+
 const int ledCount = 5;
 const char delim = ';';
-
-const int debugPin = 13;
 
 enum State_enum { PULSE, TEAM, GOAL };
 
@@ -14,6 +14,8 @@ uint8_t oldState;
 int red   = 128;
 int green = 0;
 int blue  = 0;
+
+double max_brightness = 0.6;
 
 Adafruit_NeoPixel strip(ledCount, dataPin, NEO_RGB + NEO_KHZ800);
 
@@ -34,7 +36,8 @@ void setup() {
   pinMode(debugPin, OUTPUT);
 }
 
-void loop() {
+void loop() { 
+  // Choose what to do with the LEDs based on state
   switch (state) {
     case PULSE:
       pulse();
@@ -93,6 +96,14 @@ bool changeState(uint8_t newState) {
 }
 
 void setLEDs(int r, int g, int b) {
+  r = round((double)r * max_brightness);
+  g = round((double)g * max_brightness);
+  b = round((double)b * max_brightness);
+
+  r = constrain(r, 0, 255);
+  g = constrain(g, 0, 255);
+  b = constrain(b, 0, 255);
+  
   uint32_t colour = strip.Color(r, g, b);
   strip.fill(colour, 0);
   strip.show();
@@ -118,11 +129,7 @@ void goalFlash(int numCycles, int onTime, int offTime) {
 void pulse() {
   setLEDs(brightness, brightness, brightness);
 
-  brightness = brightness + fadeAmount;
-
-  if (brightness <= 0 || brightness >= 255) {
-    fadeAmount = -fadeAmount;
-  }
+  brightness = (1 + sin(millis() * 0.002)) * 128;
 
   delay(30);
 }
